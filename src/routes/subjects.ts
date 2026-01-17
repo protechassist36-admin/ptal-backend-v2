@@ -10,26 +10,31 @@ router.get("/", async (req, res) => {
     try {
         const { search, department, page = "1", limit = "10" } = req.query;
 
-        const currentPage = Math.max(1, Number(page));
-        const limitPerPage = Math.max(1, Number(limit));
+        const currentPage = Math.max(1, parseInt(String(page), 10) || 1);
+        const limitPerPage = Math.min(
+            Math.max(1, parseInt(String(limit), 10) || 10),
+            100
+        );
         const offset = (currentPage - 1) * limitPerPage;
 
-        const filterConditions = [];
+        const filterConditions: any[] = [];
 
         // 🔍 Search by subject name OR code
         if (search) {
+            const searchPattern = `%${String(search).replace(/[%_]/g, "\\$&")}%`;
             filterConditions.push(
                 or(
-                    ilike(subjects.name, `%${search}%`),
-                    ilike(subjects.code, `%${search}%`)
+                    ilike(subjects.name, searchPattern),
+                    ilike(subjects.code, searchPattern)
                 )
             );
         }
 
         // 🏫 Filter by department name
         if (department) {
+            const deptPattern = `%${String(department).replace(/[%_]/g, "\\$&")}%`;
             filterConditions.push(
-                ilike(departments.name, `%${department}%`)
+                ilike(departments.name, deptPattern)
             );
         }
 
@@ -60,7 +65,7 @@ router.get("/", async (req, res) => {
             .limit(limitPerPage)
             .offset(offset);
 
-        // ✅ SINGLE response
+        // ✅ Response
         res.status(200).json({
             data: subjectList,
             meta: {
